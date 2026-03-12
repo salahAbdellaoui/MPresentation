@@ -433,39 +433,13 @@ erDiagram
 ### 4.5 نماذج الـ Domain (Domain Models)
 
 ```mermaid
-graph TD
+graph LR
     PC["🔑 PermissionContext"]
-    PC --> UID["UserId: int"]
-    PC --> ROLES["Roles: List‹string›"]
-    PC --> ADMIN["IsAdmin: bool"]
-    PC --> MOD["📦 Modules: ModulesPermission"]
-    PC --> SCH["🏗️ Schema: SchemaPermission"]
-    PC --> DR["📊 DataRow: PermissionPolicy"]
-    PC --> VAL["Values: Dictionary‹string, object›"]
 
-    MOD --> AXES["Axes → Dictionary‹string, AxisPermission›"]
-    AXES --> AP["AxisPermission"]
-    AP --> APE["Enabled: bool"]
-    AP --> APM["Modules → Dictionary‹string, ModulePermission›"]
-    APM --> MP["ModulePermission { Enabled: bool }"]
-
-    SCH --> TABLES["Tables → Dictionary‹string, TablePermission›"]
-    TABLES --> TP["TablePermission"]
-    TP --> TPA["Actions: List‹string›"]
-    TP --> TPF["Fields → Dictionary‹string, FieldPermission›"]
-    TPF --> FP["FieldPermission { Actions: List‹string› }"]
-
-    DR --> RULES["Rules: List‹DataRowRule›"]
-    RULES --> DRR["DataRowRule"]
-    DRR --> DRRT["Table: string"]
-    DRR --> DRRE["Effect: PermissionEffect — Allow | Deny"]
-    DRR --> DRRP["Priority: int"]
-    DRR --> DRRC["Conditions: ConditionNode"]
-    DRRC --> CNL["Logic: LogicOperator? — AND | OR"]
-    DRRC --> CNR["Rules: List‹ConditionNode›"]
-    DRRC --> CNLF["Left: string — اسم الحقل"]
-    DRRC --> CNO["Operator: string — =, IS_NULL, IN..."]
-    DRRC --> CNRT["Right: string — القيمة أو $user.X"]
+    PC --> MOD["📦 Modules"]
+    PC --> SCH["🏗️ Schema"]
+    PC --> DR["📊 DataRow"]
+    PC --> VAL["🔧 Values"]
 
     style PC fill:#f3e5f5
     style MOD fill:#e3f2fd
@@ -473,6 +447,43 @@ graph TD
     style DR fill:#ccffcc
     style VAL fill:#ffe0b2
 ```
+
+```mermaid
+graph LR
+    MOD["📦 ModulesPermission"] --> AXES["Axes"]
+    AXES --> AP["AxisPermission"]
+    AP --> APE["Enabled: bool"]
+    AP --> APM["Modules"]
+    APM --> MP["ModulePermission<br/>Enabled: bool"]
+
+    style MOD fill:#e3f2fd
+```
+
+```mermaid
+graph LR
+    SCH["🏗️ SchemaPermission"] --> TABLES["Tables"]
+    TABLES --> TP["TablePermission"]
+    TP --> TPA["Actions: List‹string›"]
+    TP --> TPF["Fields"]
+    TPF --> FP["FieldPermission<br/>Actions: List‹string›"]
+
+    style SCH fill:#fff9c4
+```
+
+```mermaid
+graph LR
+    DR["📊 PermissionPolicy"] --> RULES["Rules"]
+    RULES --> DRR["DataRowRule"]
+    DRR --> DRRT["Table + Effect + Priority"]
+    DRR --> DRRC["Conditions: ConditionNode"]
+    DRRC --> CNL["Logic: AND | OR"]
+    DRRC --> CNR["Rules: List‹ConditionNode›"]
+    DRRC --> LEAF["Left + Operator + Right"]
+
+    style DR fill:#ccffcc
+```
+
+> **PermissionContext** يحتوي أيضاً: `UserId: int`, `Roles: List<string>`, `IsAdmin: bool`, `Values: Dictionary<string, object>`
 
 ### 4.6 عوامل المقارنة المدعومة (13 نوع)
 
@@ -786,24 +797,10 @@ graph LR
 
 ```mermaid
 graph TD
-    subgraph AdminModule["🏢 AdminModule"]
-        CORE["Users + Roles + Permissions<br/>Dashboard + Audit"]
-    end
-
-    subgraph Modules["📦 الوحدات"]
-        M1["✅ Recruitment<br/>Module<br/><i>موجود</i>"]
-        M2["🆕 Congés<br/>Module<br/><i>جديد</i>"]
-        M3["🆕 Equipment<br/>Module<br/><i>جديد</i>"]
-    end
-
-    subgraph Engine["🔐 Permission Engine — مشترك"]
-        PE["يعمل تلقائياً على أي محور يُضاف إليه"]
-    end
-
-    M1 --> Engine
-    M2 --> Engine
-    M3 --> Engine
-    AdminModule --> Engine
+    CORE["🏢 AdminModule<br/>Users + Roles + Permissions + Audit"] --> PE["🔐 Permission Engine — مشترك"]
+    M1["✅ Recruitment Module"] --> PE
+    M2["🆕 Congés Module"] --> PE
+    M3["🆕 Equipment Module"] --> PE
 
     style CORE fill:#e3f2fd
     style M1 fill:#ccffcc
@@ -988,34 +985,24 @@ public async Task<List<Conge>> GetCongesAsync()
 
 ```mermaid
 graph TD
-    GW["🌐 API Gateway<br/><i>Shared JWT + Cookies</i>"]
+    GW["🌐 API Gateway<br/>Shared JWT + Cookies"]
 
-    subgraph Services["الخدمات المستقلة"]
-        S1["🏢 AdminModule<br/>Service<br/><i>Users, Roles<br/>Permissions, Audit, Config</i>"]
-        S2["🏖️ CongesModule<br/>Service<br/><i>Congés CRUD</i>"]
-        S3["🔧 EquipmentModule<br/>Service<br/><i>Equipment CRUD</i>"]
-    end
+    GW --> S1["🏢 AdminModule Service"]
+    GW --> S2["🏖️ CongesModule Service"]
+    GW --> S3["🔧 EquipmentModule Service"]
 
-    subgraph Shared["📦 Shared Permission Engine — NuGet Package أو مكتبة مشتركة"]
-        PE1["PermissionService"]
-        PE2["EfExpressionBuilder"]
-        PE3["PermissionContextMiddleware"]
-        PE4["PermissionPolicyProvider"]
-        PE5["+ Domain Models"]
-    end
+    S1 --> PE["📦 Shared Permission Engine<br/>NuGet Package"]
+    S2 --> PE
+    S3 --> PE
 
-    GW --> S1
-    GW --> S2
-    GW --> S3
-    S1 --> Shared
-    S2 --> Shared
-    S3 --> Shared
+    PE --> PE1["PermissionService + EfExpressionBuilder"]
+    PE --> PE2["PermissionContextMiddleware + PolicyProvider"]
 
     style GW fill:#f3e5f5
     style S1 fill:#e3f2fd
     style S2 fill:#fff9c4
     style S3 fill:#fff9c4
-    style PE1 fill:#ccffcc
+    style PE fill:#ccffcc
 ```
 
 **الخطوات:**
@@ -1047,26 +1034,23 @@ graph TD
 ### 8.1 المصادقة (Authentication)
 
 ```mermaid
-graph TD
-    subgraph JWT["🔐 JWT Configuration"]
-        subgraph AT["Access Token"]
-            AT1["⏱️ مدة الصلاحية: 15 دقيقة"]
-            AT2["🍪 التخزين: HTTP-Only Cookie<br/><i>غير قابل للقراءة من JS</i>"]
-            AT3["🔒 Secure: true — HTTPS فقط"]
-            AT4["🛡️ SameSite: Lax"]
-        end
-        subgraph RT["Refresh Token"]
-            RT1["⏱️ مدة الصلاحية: يوم واحد — 24 ساعة"]
-            RT2["🍪 التخزين: HTTP-Only Cookie"]
-            RT3["🔄 يُستخدم لتجديد Access Token<br/>بدون إعادة تسجيل دخول"]
-        end
-        CS["⚠️ ClockSkew: TimeSpan.Zero<br/><i>لا تسامح في انتهاء الصلاحية</i>"]
+graph LR
+    subgraph AT["🔑 Access Token"]
+        AT1["⏱️ 15 دقيقة"] --> AT2["🍪 HTTP-Only Cookie"] --> AT3["🔒 Secure + SameSite: Lax"]
     end
+    subgraph RT["🔄 Refresh Token"]
+        RT1["⏱️ 24 ساعة"] --> RT2["🍪 HTTP-Only Cookie"] --> RT3["تجديد بدون إعادة تسجيل"]
+    end
+
+    AT --> CS["⚠️ ClockSkew: Zero"]
+    RT --> CS
 
     style AT1 fill:#ccffcc
     style RT1 fill:#fff9c4
     style CS fill:#ffcccc
 ```
+
+> **ملاحظة:** الـ Access Token مخزّن في HTTP-Only Cookie **غير قابل للقراءة من JavaScript** — حماية من XSS.
 
 ### 8.2 الـ API Proxy (Frontend → Backend)
 
@@ -1149,23 +1133,20 @@ src/
 ### 9.2 إدارة الحالة (State Management)
 
 ```mermaid
-graph TD
+graph LR
     subgraph ServerState["🌐 Server State — TanStack Query v5"]
-        SQ["useQuery() → جلب البيانات مع Cache تلقائي"]
-        SM["useMutation() → عمليات الكتابة مع invalidation"]
-        SC["queryClient → مركز التحكم في Cache"]
+        SQ["useQuery()"] --> SM["useMutation()"] --> SC["queryClient"]
     end
 
     subgraph ClientState["💾 Client State — Zustand v5"]
-        CS1["useSidebarStore → حالة القائمة الجانبية"]
-        CS2["useAuthStore → معلومات المستخدم الحالي"]
-        CS3["useThemeStore → السمة Dark/Light"]
+        CS1["useSidebarStore"] --> CS2["useAuthStore"] --> CS3["useThemeStore"]
     end
 
     subgraph FormState["📝 Form State — React Hook Form v7 + Zod v4"]
-        FS1["useForm() → إدارة حقول النموذج"]
-        FS2["zodResolver() → تحقق تلقائي مع رسائل خطأ"]
+        FS1["useForm()"] --> FS2["zodResolver()"]
     end
+
+    ServerState --> ClientState --> FormState
 
     style SQ fill:#e3f2fd
     style SM fill:#e3f2fd
@@ -1174,39 +1155,38 @@ graph TD
     style FS1 fill:#ccffcc
 ```
 
+| الطبقة | الأداة | الوظيفة |
+|--------|--------|--------|
+| **Server State** | `useQuery()` | جلب البيانات مع Cache تلقائي |
+| | `useMutation()` | عمليات الكتابة مع invalidation |
+| | `queryClient` | مركز التحكم في Cache |
+| **Client State** | `useSidebarStore` | حالة القائمة الجانبية |
+| | `useAuthStore` | معلومات المستخدم الحالي |
+| | `useThemeStore` | السمة (Dark/Light) |
+| **Form State** | `useForm()` | إدارة حقول النموذج |
+| | `zodResolver()` | تحقق تلقائي مع رسائل خطأ |
+
 ### 9.3 محرر الصلاحيات البصري (Permission Editor)
 
 الـ Frontend يوفر واجهة بصرية لتعديل الصلاحيات الثلاثة:
 
 ```mermaid
-graph TD
-    subgraph Editor["🎨 Permission Editor — Visual"]
-        subgraph Tab1["Tab 1: Modules"]
-            M1["☑ AX_ADMIN"]
-            M2["  ☑ USERS_LIST  ☑ ROLES_LIST  ☐ AUDIT_LOG"]
-            M3["☑ AX_RECRUTEMENT"]
-            M4["  ☑ RECR_LIST  ☑ RECR_ADD  ☐ RECR_EDIT"]
-        end
+graph LR
+    E["🎨 Permission Editor"] --> T1["📦 Tab 1: Modules"]
+    E --> T2["🏗️ Tab 2: Schema"]
+    E --> T3["📊 Tab 3: DataRow"]
 
-        subgraph Tab2["Tab 2: Schema"]
-            S1["Table: Personnel"]
-            S2["Actions: ☑read ☑create ☑update ☐delete"]
-            S3["Fields: Nom ☑read ☑update"]
-            S4["Fields: DeptId ☑read ☐update"]
-        end
+    T1 --> M1["☑ AX_ADMIN<br/>☑ USERS_LIST ☑ ROLES_LIST"]
+    T1 --> M2["☑ AX_RECRUTEMENT<br/>☑ RECR_LIST ☑ RECR_ADD"]
 
-        subgraph Tab3["Tab 3: DataRow — Condition Builder"]
-            D1["Rule: Allow on Personnel — Priority: 100"]
-            D2["┌─ OR ─────────────────────────┐"]
-            D3["│ CorgeId IS_NULL              │"]
-            D4["│ DepartementId = $user.DeptId │"]
-            D5["└─────────────────────────────-─┘"]
-        end
-    end
+    T2 --> S1["Table: Personnel<br/>☑read ☑create ☑update"]
+    T2 --> S2["Fields: Nom ☑read ☑update<br/>DeptId ☑read ☐update"]
 
-    style M1 fill:#e3f2fd
-    style S1 fill:#fff9c4
-    style D1 fill:#ccffcc
+    T3 --> D1["Allow on Personnel — Priority: 100<br/>OR: CorgeId IS_NULL | DeptId = $user.DeptId"]
+
+    style T1 fill:#e3f2fd
+    style T2 fill:#fff9c4
+    style T3 fill:#ccffcc
 ```
 
 > **ملاحظة:** يشمل **Autocomplete** للمتغيرات الديناميكية (`$user.*`, `$context.*`) في حقل `right`.
@@ -1218,36 +1198,19 @@ graph TD
 ### 10.1 استراتيجية الـ Caching
 
 ```mermaid
-graph TD
-    I["🔌 IPermissionPolicyProvider"]
-
-    subgraph Decorator["🎯 Decorator Pattern"]
-        C["🗄️ CachedPermissionPolicyProvider<br/><i>Decorator</i>"]
-        HIT["✅ Cache Hit?<br/>→ إرجاع فوري"]
-        MISS["❌ Cache Miss?<br/>→ تمرير لـ Inner Provider"]
-    end
-
-    subgraph Inner["⚙️ Implementation"]
-        P["📦 PermissionPolicyProvider"]
-        P1["قراءة من DB"]
-        P2["دمج الأدوار المتعددة"]
-        P3["إرجاع + تخزين في Cache<br/><i>5 دقائق TTL</i>"]
-    end
-
-    KEY["🔑 Cache Key: PermissionContext:{userId}<br/>⏱️ TTL: 5 minutes — AbsoluteExpirationRelativeToNow"]
-
-    I --> C
-    C --> HIT
-    C --> MISS
-    MISS --> P
-    P --> P1 --> P2 --> P3
+graph LR
+    I["🔌 IPermissionPolicyProvider"] --> C["🗄️ CachedPermissionPolicyProvider"]
+    C -->|"Hit"| HIT["✅ إرجاع فوري"]
+    C -->|"Miss"| P["📦 PermissionPolicyProvider"]
+    P --> P1["قراءة من DB"] --> P2["دمج الأدوار"] --> P3["تخزين في Cache<br/>5 دقائق TTL"]
 
     style HIT fill:#ccffcc
-    style MISS fill:#ffcccc
     style C fill:#fff9c4
     style P fill:#e3f2fd
-    style KEY fill:#f3e5f5
+    style P3 fill:#f3e5f5
 ```
+
+> **Cache Key:** `PermissionContext:{userId}` — **TTL:** 5 minutes (AbsoluteExpirationRelativeToNow)
 
 **سجّل الـ DependencyInjection:**
 
